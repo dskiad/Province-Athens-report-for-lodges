@@ -33,7 +33,17 @@ overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:#e9edf3;d
 const toolbar=document.createElement('div');toolbar.style.cssText='display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:12px;background:#17375e;color:white';
 const save=document.createElement('button');save.type='button';save.textContent='Αποθήκευση ως PDF / Εκτύπωση';save.style.cssText='padding:12px;background:#c5a25d;border:0;border-radius:8px;font-weight:bold';
 const close=document.createElement('button');close.type='button';close.textContent='Επιστροφή στη φόρμα';close.style.cssText='padding:12px;background:white;border:0;border-radius:8px';
-const frame=document.createElement('iframe');frame.title='Προεπισκόπηση έκθεσης PDF';frame.style.cssText='flex:1;width:100%;border:0;background:white';frame.srcdoc=content;
-save.onclick=()=>{try{frame.contentWindow.focus();frame.contentWindow.print()}catch(err){alert('Δεν άνοιξε η εκτύπωση. Δοκιμάστε Chrome: '+err.message)}};
-close.onclick=()=>overlay.remove();toolbar.append(save,close);overlay.append(toolbar,frame);document.body.append(overlay);
+const printable=document.createElement('div');printable.id='printableReport';
+printable.style.cssText='flex:1;overflow:auto;background:white;padding:12px';
+const printStyles=content.match(/<style>([\s\S]*?)<\/style>/);
+const printBody=content.match(/<body>([\s\S]*?)<\/body>/);
+if(!printBody)throw Error('Δεν δημιουργήθηκε η έκθεση.');
+printable.innerHTML=printBody[1];
+const reportStyle=document.createElement('style');reportStyle.id='reportPrintStyle';
+reportStyle.textContent=(printStyles?printStyles[1]:'')+'\n@media screen{#printableReport .page{height:auto;min-height:260mm;max-width:190mm;margin:0 auto 18px;padding:10px;border:1px solid #ccc;overflow:visible}#printableReport .page2{min-height:260mm}}@media print{body>*:not(#pdfPreviewOverlay){display:none!important}#pdfPreviewOverlay{position:static!important;display:block!important;background:white!important}#pdfPreviewOverlay .pdf-toolbar{display:none!important}#printableReport{display:block!important;overflow:visible!important;padding:0!important}#printableReport .page{height:273mm!important;overflow:hidden!important;break-after:page!important;page-break-after:always!important}#printableReport .page:last-child{break-after:auto!important;page-break-after:auto!important}}';
+document.getElementById('reportPrintStyle')?.remove();document.head.append(reportStyle);
+toolbar.className='pdf-toolbar';
+save.onclick=()=>{try{window.print()}catch(err){alert('Δεν άνοιξε η εκτύπωση: '+err.message)}};
+close.onclick=()=>{overlay.remove();reportStyle.remove()};
+toolbar.append(save,close);overlay.append(toolbar,printable);document.body.append(overlay);
 }catch(err){alert('Σφάλμα προεπισκόπησης: '+err.message)}finally{btn.disabled=false;btn.textContent='Εκτύπωση / PDF'}};document.querySelector('#email').onclick=()=>{let d=data(),body=Object.entries(d).map(([k,v])=>k+': '+v).join('\n\n');location.href='mailto:athens.secretary@nglgreece.gr?subject='+encodeURIComponent('Έκθεση επίσκεψης Στοάς - '+(d['Στοά']||''))+'&body='+encodeURIComponent(body+'\n\nΠαρακαλώ επισυνάψτε χωριστά το υπογεγραμμένο PDF.')};</script></body></html>
